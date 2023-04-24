@@ -1,29 +1,41 @@
-import hotelsRepository from '@/repositories/hotels-repository';
+import hotelRepository from '@/repositories/hotel-repository';
 import enrollmentRepository from '@/repositories/enrollment-repository';
-import ticketsRepository from '@/repositories/tickets-repository';
 import { notFoundError } from '@/errors';
-import { hotelsListingError } from '@/errors/hotels-Listing-Error';
+import ticketsRepository from '@/repositories/tickets-repository';
+import { cannotListHotelsError } from '@/errors/cannot-list-hotels-error';
 
-async function getAllowedTicket(userId: number) {
+async function listHotels(userId: number) {
+  //Tem enrollment?
   const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
   if (!enrollment) {
     throw notFoundError();
   }
-
+  //Tem ticket pago isOnline false e includesHotel true
   const ticket = await ticketsRepository.findTicketByEnrollmentId(enrollment.id);
-  if (!ticket || ticket.status === 'RESERVED' || ticket.TicketType.isRemote || !ticket.TicketType.includesHotel) {
-    throw hotelsListingError();
-  }
 
-  return ticket;
+  if (!ticket || ticket.status === 'RESERVED' || ticket.TicketType.isRemote || !ticket.TicketType.includesHotel) {
+    throw cannotListHotelsError();
+  }
 }
 
 async function getHotels(userId: number) {
-  const ticket = await getAllowedTicket(userId);
-  const hotels = await hotelsRepository.findHotels();
+  await listHotels(userId);
+
+  const hotels = await hotelRepository.findHotels();
   return hotels;
+}
+
+async function getHotelsWithRooms(userId: number, hotelId: number) {
+  await listHotels(userId);
+  const hotel = await hotelRepository.findRoomsByHotelId(hotelId);
+
+  if (!hotel) {
+    throw notFoundError();
+  }
+  return hotel;
 }
 
 export default {
   getHotels,
+  getHotelsWithRooms,
 };
