@@ -16,3 +16,14 @@ export async function getBooking(req: AuthenticatedRequest, res: Response, next:
     next(error);
   }
 }
+export async function postCreateBooking(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const { userId } = req;
+  const { roomId } = req.body;
+
+  try {
+    const bookingId = await bookingService.postCreateBooking(userId, roomId);
+    return res.status(httpStatus.OK).send({ bookingId });
+  } catch (error) {
+    next(error);
+  }
+}
