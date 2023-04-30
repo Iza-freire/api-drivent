@@ -13,6 +13,8 @@ import {
   createTicketTypeWithHotel,
   createUser,
   createBooking,
+  createTicketTypeRemote,
+  createTicketType,
 } from '../factories';
 import app, { init } from '@/app';
 
@@ -162,6 +164,41 @@ describe('POST /booking', () => {
         });
 
       expect(response.status).toEqual(httpStatus.NOT_FOUND);
+    });
+    it('should respond with status 403 when user ticket is remote ', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await createTicketTypeRemote();
+      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+      const payment = await createPayment(ticket.id, ticketType.price);
+
+      const response = await server.get('/booking').set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toEqual(httpStatus.NOT_FOUND);
+    });
+    it("should respond with status 403 with a invalid body - there's not vacancy", async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const enrollment = await createEnrollmentWithAddress(user);
+      const ticketType = await createTicketTypeWithHotel();
+      const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID);
+      const payment = await createPayment(ticket.id, ticketType.price);
+
+      const hotel = await createHotel();
+      const room = await createRoomWithHotelId(hotel.id);
+
+      await createBooking(room.id, user.id);
+
+      await createBooking(room.id, user.id);
+
+      await createBooking(room.id, user.id);
+
+      const response = await server.post('/booking').set('Authorization', `Bearer ${token}`).send({
+        roomId: room.id,
+      });
+
+      expect(response.status).toEqual(httpStatus.FORBIDDEN);
     });
   });
 });

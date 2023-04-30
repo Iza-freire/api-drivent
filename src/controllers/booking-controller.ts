@@ -24,6 +24,9 @@ export async function postCreateBooking(req: AuthenticatedRequest, res: Response
     const bookingId = await bookingService.postCreateBooking(userId, roomId);
     return res.status(httpStatus.OK).send({ bookingId });
   } catch (error) {
+    if (error.name === 'CannotBookRoomError') {
+      return res.status(httpStatus.FORBIDDEN).send({ message: error.message });
+    }
     next(error);
   }
 }
