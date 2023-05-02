@@ -229,6 +229,20 @@ describe('PUT /booking/:bookingId', () => {
   });
 
   describe('when token is valid', () => {
+    it('should respond with status 403 if user does not have a booking', async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+      const hotel = await createHotel();
+      const room = await createRoomWithHotelId(hotel.id);
+      const otherRoom = await createRoomWithHotelId(hotel.id);
+      const booking = await createBooking(otherRoom.id, user.id);
+
+      const response = await server.put(`/booking/${booking.id}`).set('Authorization', `Bearer ${token}`).send({
+        roomId: room.id,
+      });
+
+      expect(response.status).toEqual(httpStatus.FORBIDDEN);
+    });
     it("should respond with status 404 with a invalid body - there's no roomId", async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
